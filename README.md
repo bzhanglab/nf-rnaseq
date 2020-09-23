@@ -23,9 +23,9 @@ In the above examples, if you want the results to be stored locally on your
 launch host, just provide `--run_version xyz`, and the results will be stored
 at `results/xyz` under your launch directory. 
 
-You can also directly provide `--outdir xyz` to specify where you want to 
-store the results, here `xyz` can even be an s3 path.
-
+To run with awsbatch, you must specify an s3 path as `outdir`, e.g.
+`--outdir s3://my-bucket/my-folder`.  In this case, results will be 
+stored under `s3://my-bucket/my-folder/run_version`.
 
 
 ## Inputs

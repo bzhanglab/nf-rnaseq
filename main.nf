@@ -517,8 +517,14 @@ if (params.help) {
     exit 0
 }
 
+assert params.run_version
+
 if (params.start > 0 && params.end > 0) {
   assert params.start <= params.end
+}
+
+if (workflow.profile.contains('awsbatch')) {
+  if (!params.outdir.startsWith('s3:')) exit 1, "outdir not on S3 - specify S3 path to run on AWSBatch!"
 }
 
 workflow {
