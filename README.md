@@ -5,15 +5,27 @@
 * run with docker locally
 
 ```console
-nextflow run bzhanglab/rnaseq -profile docker --run_version 2020-xx-xx 
+nextflow run bzhanglab/rnaseq -profile docker \
+   --start 1 --end 2 --run_version rnaseq-2020-09-22
 ```
 
 * run with aws batch on AWS cloud
 
 ```console
 nextflow run bzhanglab/rnaseq  -profile awsbatch \
-   -bucket-dir s3://zhanglab-nextflow-workdir/workdir/2020-09-18 --run_version 2020-xx-xx
+   --start 1 --end 2 \
+   -bucket-dir s3://zhanglab-nextflow-workdir/workdir/2020-09-18 \
+   --outdir s3://zhanglab-shiz/rnaseq-results \
+   --run_version rnaseq-2020-09-22
 ```
+
+In the above examples, if you want the results to be stored locally on your 
+launch host, just provide `--run_version xyz`, and the results will be stored
+at `results/xyz` under your launch directory. 
+
+You can also directly provide `--outdir xyz` to specify where you want to 
+store the results, here `xyz` can even be an s3 path.
+
 
 
 ## Inputs
