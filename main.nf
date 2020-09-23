@@ -31,7 +31,7 @@ def rnaseqHeader() {
 
 // step 1
 process genome_index {
-  container 'bzhanglab/bwa'
+  container "${params.container.bwa}" 
   publishDir  params.genome_basedir, mode: 'move'
   label 'r5_2xlarge'
   cpus 8
@@ -52,7 +52,7 @@ process genome_index {
 
 
 process generate_id_files {
-   container 'bzhanglab/r-tidyverse'
+   container "${params.container.r_tidyverse}"
    label 'r5_2xlarge'
 
    input:
@@ -159,7 +159,7 @@ process generate_id_files {
 
 
 process download_files {
-  container 'bzhanglab/gdc-client'
+  container "${params.container.gdc_client}"
   label 'r5_2xlarge'
   cpus 8
   memory '60 GB'
@@ -216,7 +216,7 @@ process download_files {
 
 // step 2 
 process fastq_to_sam {
-  container 'bzhanglab/bwa'
+  container "${params.container.bwa}"
   cpus 8
   memory '60 GB'
   label 'r5_2xlarge'
@@ -247,7 +247,7 @@ process ciri_calling {
   publishDir params.outdir_ciri, 
              pattern: '*/results_CIRI.txt',
              mode: 'copy', overwrite: true 
-  container 'bzhanglab/ciri'
+  container "${params.container.ciri}"
   label 'r5_4xlarge'
   cpus 16
   memory '124 GB'
@@ -279,7 +279,7 @@ process add_gene_name_to_CIRI_results {
   publishDir params.outdir_ciri,
              pattern: '*/results_CIRI_added_gene_name.txt',
              mode: 'copy', overwrite: true
-  container 'bzhanglab/rna-seq-misc-ydou'
+  container "${params.container.rna_seq_misc_ydou}"
   label 'r5_2xlarge'
 
   input:
@@ -301,7 +301,7 @@ process add_gene_name_to_CIRI_results {
 
 // step 5
 process add_linear_circular_isoform_to_gtf{
-  container 'bzhanglab/rna-seq-misc-ydou'
+  container "${params.container.rna_seq_misc_ydou}"
   label 'r5_2xlarge'
 
   input:
@@ -326,7 +326,7 @@ process extract_linear_and_circRNA_transcripts {
   // publishDir params.outdir_genome,  
   //            pattern: "*/${genome_ref_prefix}.linear.and.circrna.*",
   //            mode: 'copy', overwrite: true
-  container 'bzhanglab/rsem'
+  container "${params.container.rsem}"
   label 'r5_2xlarge'
 
   input:
@@ -354,7 +354,7 @@ process circular_linear_to_psedo_linear{
   // publishDir params.outdir_genome,
   //            pattern: '*/linear.and.circrna.as.pseudo.linear.transcripts.fa',
   //            mode: 'copy', overwrite: true
-  container  'bzhanglab/rna-seq-misc-ydou'
+  container  "${params.container.rna_seq_misc_ydou}"
   label 'r5_2xlarge'
 
   input:
@@ -378,7 +378,7 @@ process gene_isoform_mapping_with_circular_rna{
   //            pattern: '*/gene_isoform_mapping_with_circular_rna_for_RSEM.txt',
   //            mode: 'copy',
   //            overwrite: true
-  container  'bzhanglab/rna-seq-misc-ydou'
+  container  "${params.container.rna_seq_misc_ydou}"
   label 'r5_2xlarge'
 
   input:
@@ -403,7 +403,7 @@ process gene_isoform_mapping_with_circular_rna{
 // step 9
 process build_rsem_index {
   // publishDir params.outdir_genome, mode: 'copy', overwrite: true
-  container 'bzhanglab/rsem'
+  container "${params.container.rsem}"
   label 'r5_2xlarge'
   cpus 8
   memory '60 GB'
@@ -438,7 +438,7 @@ process gene_and_transcript_quantification {
              pattern: "${case_id}/${case_id}.*.results",
              mode: 'copy',
              overwrite: true
-  container 'bzhanglab/rsem'
+  container "${params.container.rsem}"
   label 'r5_2xlarge'
   cpus 8
   memory '60 GB'
@@ -468,7 +468,7 @@ process summarize_gene_quantification {
              pattern: "${case_id}",
              mode: 'copy',
              overwrite: false
-  container  'bzhanglab/rna-seq-misc-ydou'
+  container  "${params.container.rna_seq_misc_ydou}"
   label 'r5_2xlarge'
   cpus 4
   memory '30 GB'
@@ -493,7 +493,7 @@ process combine_and_summary {
              pattern: "RSEM_results_summarized",
              mode: 'copy',
              overwrite: true
-  container  'bzhanglab/rna-seq-combine-summary:1.0.0'
+  container  "${params.container.rna_seq_combine_summary}"
   label 'r5_2xlarge'
   cpus 4
   memory '30 GB'
