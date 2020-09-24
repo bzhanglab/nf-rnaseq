@@ -17,16 +17,16 @@ def helpMessage() {
     """.stripIndent()
 }
 
-
-def rnaseqHeader() {
-    return """
-====================================================================================
+header = """====================================================================================
    ___   _  __ ___    ____ ____ ____     ___   ____ ___   ____ __    ____ _  __ ____
   / _ \\ / |/ // _ |  / __// __// __ \\   / _ \\ /  _// _ \\ / __// /   /  _// |/ // __/
  / , _//    // __ | _\\ \\ / _/ / /_/ /  / ___/_/ / / ___// _/ / /__ _/ / /    // _/  
 /_/|_|/_/|_//_/ |_|/___//___/ \\___\\_\\ /_/   /___//_/   /___//____//___//_/|_//___/ 
 ===================================================================================
-""".stripIndent()
+"""
+
+def rnaseqHeader() {
+    return header.stripIndent()
 }
 
 // step 1
@@ -580,3 +580,23 @@ workflow {
    // step 12
   combine_and_summary(summarize_gene_quantification.out.res_ch.collect())
 }
+
+report_txt = """$header
+ name = ${workflow.manifest.name}
+ author = ${workflow.manifest.author}
+ homePage = ${workflow.manifest.homePage}
+ description = ${workflow.manifest.description}
+ mainScript = ${workflow.manifest.mainScript}
+ nextflowVersion = ${workflow.manifest.nextflowVersion}
+ version = ${workflow.manifest.version}
+""".stripIndent()
+
+
+workflow.onComplete {
+  def output_d = new File("${params.outdir_run}/pipeline_info/")
+  if (!output_d.exists()) {
+      output_d.mkdirs()
+  }
+  println "Pipeline completed at: $workflow.complete"
+  def output_tf = new File(output_d, "pipeline_report.txt")
+  output_tf.withWriter { w -> w << report_txt }
