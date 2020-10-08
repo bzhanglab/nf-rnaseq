@@ -5,17 +5,17 @@
 * run with docker locally
 
 ```console
-nextflow run bzhanglab/nf-rnaseq -profile docker \
-   --case_id my_case_id.txt \
+nextflow run bzhanglab/nf-rnaseq -r main -profile docker \
+   --case_id /path/to/my_case_id.txt \
    --start 1 --end 2 --run_version rnaseq-2020-09-22
 ```
 
 * run with aws batch on AWS cloud
 
 ```console
-nextflow run bzhanglab/nf-rnaseq  -profile awsbatch \
+nextflow run bzhanglab/nf-rnaseq -r main -profile awsbatch \
    --start 1 --end 2 \
-   --case_id my_case_id.txt \
+   --case_id /path/to/my_case_id.txt \
    -bucket-dir s3://zhanglab-nextflow-workdir/workdir/2020-09-18 \
    --outdir s3://zhanglab-shiz/rnaseq-results \
    --run_version rnaseq-2020-09-22
