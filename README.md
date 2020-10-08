@@ -6,6 +6,7 @@
 
 ```console
 nextflow run bzhanglab/rnaseq -profile docker \
+   --case_id my_case_id.txt \
    --start 1 --end 2 --run_version rnaseq-2020-09-22
 ```
 
@@ -14,6 +15,7 @@ nextflow run bzhanglab/rnaseq -profile docker \
 ```console
 nextflow run bzhanglab/rnaseq  -profile awsbatch \
    --start 1 --end 2 \
+   --case_id my_case_id.txt \
    -bucket-dir s3://zhanglab-nextflow-workdir/workdir/2020-09-18 \
    --outdir s3://zhanglab-shiz/rnaseq-results \
    --run_version rnaseq-2020-09-22

@@ -518,6 +518,7 @@ if (params.help) {
 }
 
 assert params.run_version
+assert params.case_id
 
 if (params.start > 0 && params.end > 0) {
   assert params.start <= params.end
