@@ -601,3 +601,5 @@ workflow.onComplete {
   println "Pipeline completed at: $workflow.complete"
   def output_tf = new File(output_d, "pipeline_report.txt")
   output_tf.withWriter { w -> w << report_txt }
+
+}
