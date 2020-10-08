@@ -593,7 +593,7 @@ report_txt = """$header
 
 
 workflow.onComplete {
-  def output_d = new File("${params.outdir_run}/pipeline_info/")
+  def output_d = new File("results/${params.run_version}/pipeline_info/")
   if (!output_d.exists()) {
       output_d.mkdirs()
   }
