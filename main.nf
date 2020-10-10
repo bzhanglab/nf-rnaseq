@@ -2,6 +2,10 @@
 
 nextflow.enable.dsl = 2
 
+params.outdir_run = "${params.outdir}/${params.run_version}"
+params.outdir_ciri = "${params.outdir_run}/CIRI_results"
+params.outdir_rsem = "${params.outdir_run}/RSEM_results"
+
 
 def helpMessage() {
     log.info rnaseqHeader()
