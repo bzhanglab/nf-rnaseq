@@ -75,11 +75,18 @@ process generate_id_files {
 
    case_id <- read_tsv("case_id.txt") %>%
               pull(1)
+   case_start <- ifelse($start == -1, 1, $start)
+   case_end <- ifelse($end == -1, length(case_id), $end)
+   stopifnot(case_start >= 1, case_start <= length(case_id))
+   stopifnot(case_end >= 1, case_end <= length(case_id))
+   stopifnot(case_start <= case_end)
+
    catalog <- read_tsv("catalog.txt")
    catalog_rnaseq <- catalog %>% 
                      filter(case %in% case_id) %>%
                      filter(experimental_strategy == "RNA-Seq") %>%
-                     filter(data_format == "FASTQ")
+                     filter(data_format == "FASTQ") %>%
+                     filter(is.na(aliquot_annotation))
 
    sample_names <-  catalog_rnaseq %>% pull(1)
    all_case_tbl <- tibble(case=character(),
@@ -91,7 +98,7 @@ process generate_id_files {
                           R2_md5=character()) 
    for (case in case_id) {
       tmp <- str_match(sample_names, paste0("(",case,")\\\\.RNA-Seq\\\\.(R[1-2]).([^\\\\.]+)(.*)"))
-      matched_case <- as_tibble(tmp) %>% 
+      matched_case <- as_tibble(tmp, .name_repair = "unique") %>% 
                     filter(.data[[names(.)[[5]]]] == "") %>%
                     drop_na()
       # e.g. "A", "T"
@@ -102,6 +109,10 @@ process generate_id_files {
                      filter(.data[[names(.)[[3]]]] == "R1") %>%
                      filter(.data[[names(.)[[4]]]] == st)  %>%
                      pull(1)
+          if (length(r1_name) > 1) {
+            print(paste0(length(r1_name), " duplicates for ", unique(r1_name), " found"))
+            quit(status=1)
+          }
           r1_file_name <- catalog_rnaseq %>%
                           filter(.data[[names(.)[[1]]]] == r1_name) %>%
                           select("filename") %>%
@@ -141,19 +152,8 @@ process generate_id_files {
    }
 
    # write_tsv(all_case_tbl, "all_case_info.tsv")
-   if ($start == -1 ) {
-       case_start <- 1
-   } else {
-      case_start <- $start
-   } 
-   if ($end == -1){
-       case_end <- nrow(all_case_tbl)
-   } else {
-      case_end <- $end
-   }
-
    # case_id   r1_uuid    r2_uuid
-   for (i in seq(case_start, case_end)) {
+   for (i in seq(1, nrow(all_case_tbl))) {
       write_tsv(all_case_tbl[i, c("case", "R1_uuid", "R1_filename", "R1_md5", 
                 "R2_uuid", "R2_filename", "R2_md5")], paste0('case_', i, '.tsv'),
                 col_names = FALSE)

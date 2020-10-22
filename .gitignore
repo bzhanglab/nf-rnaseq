@@ -7,3 +7,4 @@ test*.nf
 .DS_Store
 docs/_build
 *.tsv
+.vscode
