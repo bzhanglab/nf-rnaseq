@@ -86,7 +86,10 @@ process generate_id_files {
                      filter(case %in% case_id) %>%
                      filter(experimental_strategy == "RNA-Seq") %>%
                      filter(data_format == "FASTQ") %>%
-                     filter(is.na(aliquot_annotation))
+                     {
+                        if("aliquot_annotation" %in% names(.)) filter(., is.na(aliquot_annotation)) else .
+                     }
+
 
    sample_names <-  catalog_rnaseq %>% pull(1)
    all_case_tbl <- tibble(case=character(),
