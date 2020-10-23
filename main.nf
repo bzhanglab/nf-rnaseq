@@ -601,12 +601,11 @@ report_txt = """$header
 
 
 workflow.onComplete {
-  def output_d = new File("results/${params.run_version}/pipeline_info/")
+  def output_d = new File("results/pipeline_info/")
   if (!output_d.exists()) {
       output_d.mkdirs()
   }
   println "Pipeline completed at: $workflow.complete"
   def output_tf = new File(output_d, "pipeline_report.txt")
   output_tf.withWriter { w -> w << report_txt }
-
 }
