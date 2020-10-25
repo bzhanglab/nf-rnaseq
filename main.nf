@@ -81,6 +81,8 @@ process generate_id_files {
    stopifnot(case_end >= 1, case_end <= length(case_id))
    stopifnot(case_start <= case_end)
 
+   case_id <- case_id[case_start, case_end]
+
    catalog <- read_tsv("catalog.txt")
    catalog_rnaseq <- catalog %>% 
                      filter(case %in% case_id) %>%
