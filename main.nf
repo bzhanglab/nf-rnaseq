@@ -12,12 +12,15 @@ def helpMessage() {
     log.info """
     Usage:
     The typical command for running the pipeline is as follows:
-    nextflow run main.nf -profile docker -with-dag rnaseq-flowchart.pdf -with-timeline
+    nextflow run main.nf -profile docker 
     or 
-    nextflow run main.nf -profile awsbatch -bucket-dir s3://zhanglab-nextflow-workdir/workdir -with-dag rnaseq-flowchart.pdf -with-timeline
+    nextflow run main.nf -profile awsbatch -bucket-dir s3://zhanglab-nextflow-workdir/workdir
     Mandatory arguments:
       -profile                      Configuration profile to use.
                                     Available: docker, awsbatch.
+    
+    Optional argument:
+      --allow_dup                  Allow duplicated sample id 
     """.stripIndent()
 }
 
@@ -72,6 +75,56 @@ process generate_id_files {
    """
    #!/usr/bin/env Rscript
    library(tidyverse)
+   
+   # if dup_id is 0,  there is no duplication
+   get_file_info <- function(catalog_rnaseq, case, st, r1_name, dup_id,
+                             matched_case, case_aliquot){
+      if (dup_id == 0) {
+        new_name <- paste0(case, "_", st)
+        cur_aliquot <- case_aliquot[1, "aliquot"]
+      } else {
+        new_name <- paste0(case, "_", st, "_", dup_id)
+        cur_aliquot <- case_aliquot[dup_id, "aliquot"] %>% pull(1)
+      }
+      r1_file_name <- catalog_rnaseq %>%
+                  filter(.data[[names(.)[[1]]]] == r1_name) %>%
+                  filter(.data[[names(.)[[6]]]] == cur_aliquot) %>%
+                  select("filename") %>%
+                  pull(1)
+      r1_uuid <- catalog_rnaseq %>%
+                  filter(.data[[names(.)[[1]]]] == r1_name) %>%
+                  filter(.data[[names(.)[[6]]]] == cur_aliquot) %>%
+                  select("UUID") %>%
+                  pull(1)
+      r1_md5 <- catalog_rnaseq %>%
+                  filter(.data[[names(.)[[1]]]] == r1_name) %>%
+                  filter(.data[[names(.)[[6]]]] == cur_aliquot) %>%
+                  select("MD5") %>%
+                  pull(1)
+      r2_name <- matched_case %>%
+                  filter(.data[[names(.)[[3]]]] == "R2") %>%
+                  filter(.data[[names(.)[[4]]]] == st) %>%
+                  pull(1) %>% 
+                  unique()
+      r2_file_name <- catalog_rnaseq %>%
+                    filter(.data[[names(.)[[1]]]] == r2_name) %>%
+                    filter(.data[[names(.)[[6]]]] == cur_aliquot) %>%
+                    select("filename") %>%
+                    pull(1)
+      r2_uuid <- catalog_rnaseq %>%
+                  filter(.data[[names(.)[[1]]]] == r2_name) %>%
+                  filter(.data[[names(.)[[6]]]] == cur_aliquot) %>%
+                  select("UUID") %>%
+                  pull(1)
+      r2_md5 <- catalog_rnaseq %>%
+                  filter(.data[[names(.)[[1]]]] == r2_name) %>%
+                  filter(.data[[names(.)[[6]]]] == cur_aliquot) %>%
+                  select("MD5") %>%
+                  pull(1)
+      return(tibble(case=new_name, R1_filename=r1_file_name, R1_uuid=r1_uuid,
+                  R1_md5=r1_md5, R2_filename=r2_file_name,
+                  R2_uuid=r2_uuid, R2_md5=r2_md5))
+   }
 
    case_id <- read_tsv("case_id.txt") %>%
               pull(1)
@@ -109,49 +162,44 @@ process generate_id_files {
       # e.g. "A", "T"
       sample_type <- unique(matched_case[[4]])
       for (st in sample_type){
-          new_name <- paste0(case, "_", st)
           r1_name <- matched_case %>% 
                      filter(.data[[names(.)[[3]]]] == "R1") %>%
                      filter(.data[[names(.)[[4]]]] == st)  %>%
                      pull(1)
+          case_aliquot <- catalog_rnaseq %>%
+                          select(sample_name, case, aliquot) %>%
+                          filter(sample_name == unique(r1_name)) %>%
+                          arrange(aliquot)
           if (length(r1_name) > 1) {
-            print(paste0(length(r1_name), " duplicates for ", unique(r1_name), " found"))
-            quit(status=1)
+            # if allow duplicates, 
+            # give new names ordered by aliquot id (alphabetically)
+            # e.g. C3N-01525_T_1, C3N-01525_T_2, ...
+            # with aliquot ID:  CPT95870043, CPT95870046, ...
+            if("${params.allow_dup}" == "false") {
+              print("error!!! duplicates found!!! ")
+              print(paste0(length(r1_name), " duplicates for ", unique(r1_name), " found"))
+              quit(status=1)
+            } else {
+              # create multiple r1_name, one for each aliquot id
+              temp_info <- tibble(case=character(), R1_filename=character(),
+                            R1_uuid=character(), R1_md5=character(),
+                            R2_filename=character(),
+                            R2_uuid=character(), R2_md5=character())
+              for (i in seq_len(nrow(case_aliquot))){
+                 res <- get_file_info(catalog_rnaseq, case, st, 
+                                      unique(r1_name), i,
+                                      matched_case, case_aliquot) 
+                 temp_info <- temp_info %>%
+                              bind_rows(res)    
+              }
+            }
           }
-          r1_file_name <- catalog_rnaseq %>%
-                          filter(.data[[names(.)[[1]]]] == r1_name) %>%
-                          select("filename") %>%
-                          pull(1)
-          r1_uuid <- catalog_rnaseq %>%
-                     filter(.data[[names(.)[[1]]]] == r1_name) %>%
-                     select("UUID") %>%
-                     pull(1)
-          r1_md5 <- catalog_rnaseq %>%
-                     filter(.data[[names(.)[[1]]]] == r1_name) %>%
-                     select("MD5") %>%
-                     pull(1)
-          r2_name <- matched_case %>%
-                     filter(.data[[names(.)[[3]]]] == "R2") %>%
-                     filter(.data[[names(.)[[4]]]] == st) %>%
-                     pull(1)
-          r2_file_name <- catalog_rnaseq %>%
-                        filter(.data[[names(.)[[1]]]] == r2_name) %>%
-                        select("filename") %>%
-                        pull(1)
-          r2_uuid <- catalog_rnaseq %>%
-                     filter(.data[[names(.)[[1]]]] == r2_name) %>%
-                     select("UUID") %>%
-                     pull(1)
-          r2_md5 <- catalog_rnaseq %>%
-                     filter(.data[[names(.)[[1]]]] == r2_name) %>%
-                     select("MD5") %>%
-                     pull(1)
-          cur_tbl <- tibble(case=new_name, R1_filename=r1_file_name,
-                            R1_uuid=r1_uuid, R1_md5=r1_md5,
-                            R2_filename=r2_file_name,
-                            R2_uuid=r2_uuid, R2_md5=r2_md5)
+          else{  # no duplication
+            temp_info <- get_file_info(catalog_rnaseq, case, st, unique(r1_name),
+                                        0, matched_case, case_aliquot)  
+          }
           all_case_tbl <- all_case_tbl %>%
-                          add_row(cur_tbl)
+                          bind_rows(temp_info)
           
       }
    }
