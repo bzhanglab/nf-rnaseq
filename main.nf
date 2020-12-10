@@ -5,6 +5,7 @@ nextflow.enable.dsl = 2
 params.outdir_run = "${params.outdir}/${params.run_version}"
 params.outdir_ciri = "${params.outdir_run}/CIRI_results"
 params.outdir_rsem = "${params.outdir_run}/RSEM_results"
+params.outdir_rsem2 = "${params.outdir_run}/RSEM_results_2"
 
 
 def helpMessage() {
@@ -487,11 +488,11 @@ linear.and.circrna.as.pseudo.linear.transcripts.fa ${case_id}/hg38
 
 // step 10
 process gene_and_transcript_quantification {
-  publishDir params.outdir_rsem, 
+  publishDir params.outdir_rsem2, 
              pattern: "${case_id}/${case_id}.stat",
              mode: 'copy',
              overwrite: true
-  publishDir params.outdir_rsem, 
+  publishDir params.outdir_rsem2, 
              pattern: "${case_id}/${case_id}.*.results",
              mode: 'copy',
              overwrite: true
@@ -524,7 +525,7 @@ process summarize_gene_quantification {
  publishDir params.outdir_rsem,
              pattern: "${case_id}",
              mode: 'copy',
-             overwrite: false
+             overwrite: true
   container  "${params.container.rna_seq_misc_ydou}"
   label 'r5_2xlarge'
   cpus 4
