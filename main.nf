@@ -140,6 +140,7 @@ process generate_id_files {
    catalog <- read_tsv("catalog.txt")
    catalog_rnaseq <- catalog %>% 
                      filter(case %in% case_id) %>%
+                     select(sample_name = 1, everything()) %>%
                      filter(experimental_strategy == "RNA-Seq") %>%
                      filter(data_format == "FASTQ") %>%
                      {
