@@ -59,7 +59,7 @@ process genome_index {
 }
 
 
-process generate_id_files {
+process generate_id_files_gdc {
    container "${params.container.r_tidyverse}"
    label 'r5_2xlarge'
 
@@ -217,6 +217,69 @@ process generate_id_files {
 }
 
 
+process generate_id_files {
+   container "${params.container.r_tidyverse}"
+   label 'r5_2xlarge'
+
+   input:
+     path('catalog.txt')
+     val start
+     val end
+
+   output:
+     path 'case_*.tsv'
+
+   script:
+   """
+   #!/usr/bin/env Rscript
+   library(tidyverse)
+   
+   catalog <- read_tsv("catalog.txt")
+   case_id <- catalog %>% pull(1)
+   case_start <- ifelse($start == -1, 1, $start)
+   case_end <- ifelse($end == -1, length(case_id), $end)
+   stopifnot(case_start >= 1, case_start <= length(case_id))
+   stopifnot(case_end >= 1, case_end <= length(case_id))
+   stopifnot(case_start <= case_end)
+
+   case_id <- case_id[case_start:case_end]
+   catalog_rnaseq <- catalog %>% 
+                     filter(sample_name %in% case_id) 
+
+   # case_id   R1_path    R2_path
+   for (i in seq(1, nrow(catalog_rnaseq))) {
+      write_tsv(catalog_rnaseq[i,], paste0('case_', i, '.tsv'),
+                col_names = FALSE)
+   }
+   """
+}
+
+
+process extract_paths {
+  container "${params.container.ubuntu}"
+  cpus 8
+  memory '60 GB'
+  label 'r5_2xlarge'
+
+  input:
+    path(id_file)
+
+  output:
+    env case_id, emit: case_id
+    env r1_path, emit: r1_path
+    env r2_path, emit: r2_path
+
+  """
+   while IFS=\$'\\t' read -r -a myid
+   do
+      case_id="\${myid[0]}"
+      r1_path="\${myid[1]}"
+      r2_path="\${myid[2]}"
+   done < $id_file
+   """
+}
+
+
 process download_files {
   container "${params.container.gdc_client}"
   label 'r5_2xlarge'
@@ -270,6 +333,38 @@ process download_files {
       echo "\${case_id}" > CASE_ID
    done < $id_file
    """
+}
+
+
+process stage_files {
+  container "${params.container.ubuntu}"
+  label 'r5_2xlarge'
+  cpus 8
+  memory '60 GB'
+
+  input:
+    val(case_id)
+    val(r1_path)
+    val(r2_path)
+    path(r1_path)
+    path(r2_path)
+
+ output:
+  tuple path('CASE_ID'),
+        path('R1/*.fastq'),
+        path('R2/*.fastq'),
+        emit: res_ch
+
+  """
+  echo "${case_id}" > CASE_ID
+  mkdir R1 R2
+  r1_name=\$(basename ${r1_path})
+  gunzip -f \${r1_name}
+  mv *.fastq R1
+  r2_name=\$(basename ${r2_path})
+  gunzip -f \${r2_name}
+  mv *.fastq R2
+  """
 }
 
 
@@ -577,7 +672,9 @@ if (params.help) {
 }
 
 assert params.run_version
-assert params.case_id
+if (params.data_source == 'gdc') {
+  assert params.case_id
+}
 
 if (params.start > 0 && params.end > 0) {
   assert params.start <= params.end
@@ -593,11 +690,24 @@ workflow {
    if (params.run_indexing) {
       genome_index(params.genome_ref_prefix, params.genome_ref)
    }
-   generate_id_files(params.catalog_file, params.case_id,
+   if (params.data_source == 'gdc') {
+     generate_id_files_gdc(params.catalog_file, params.case_id,
                     params.start, params.end)
-   download_files(params.gdc_token, generate_id_files.out.flatten())
+     download_files(params.gdc_token, generate_id_files_gdc.out.flatten())
+     file_ch = download_files.out.res_ch
+   } else { // s3 or local files will be staged
+     generate_id_files(params.catalog_file, params.start, params.end)
+     extract_paths(generate_id_files.out.flatten())
+     stage_files(extract_paths.out.case_id,
+                 extract_paths.out.r1_path,
+                 extract_paths.out.r2_path,
+                 extract_paths.out.r1_path,
+                 extract_paths.out.r2_path
+                 )
+     file_ch = stage_files.out.res_ch
+   }
    // step 2
-   fastq_to_sam(download_files.out.res_ch,
+   fastq_to_sam(file_ch,
         params.genome_ref_prefix,
         params.genome_ref,
         Channel.fromPath(params.genome_ref_index).collect())
@@ -630,8 +740,7 @@ workflow {
   new_ch = ch1_new.combine(ch2_new, by:0)
   build_rsem_index(new_ch)
    // step 10
-  fastq_ch = download_files.out.res_ch
-  fastq_ch_new = fastq_ch.map{it -> [it[0].text.trim(), it[1], it[2]]}
+  fastq_ch_new = file_ch.map{it -> [it[0].text.trim(), it[1], it[2]]}
   rsem_idx_ch = build_rsem_index.out.res_ch
   new_input_ch = fastq_ch_new.combine(rsem_idx_ch, by:0)
   gene_and_transcript_quantification(new_input_ch)
