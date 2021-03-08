@@ -402,7 +402,7 @@ process ciri_calling {
              pattern: '*/results_CIRI.txt',
              mode: 'copy', overwrite: true 
   container "${params.container.ciri}"
-  label 'r5_4xlarge'
+  label 'r5_4xlarge_500g'
   cpus 16
   memory '124 GB'
 
