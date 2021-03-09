@@ -402,7 +402,7 @@ process ciri_calling {
              pattern: '*/results_CIRI.txt',
              mode: 'copy', overwrite: true 
   container "${params.container.ciri}"
-  label 'r5_4xlarge_500g'
+  label 'r5_4xlarge_dynamic_disk'
   cpus 16
   memory '124 GB'
 
@@ -593,7 +593,7 @@ process gene_and_transcript_quantification {
              mode: 'copy',
              overwrite: true
   container "${params.container.rsem}"
-  label 'r5_2xlarge'
+  label 'r5_2xlarge_dynamic_disk'
   cpus 8
   memory '60 GB'
 
