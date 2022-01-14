@@ -373,7 +373,7 @@ process fastq_to_sam {
   container "${params.container.bwa}"
   cpus 8
   memory '60 GB'
-  label 'r5_2xlarge'
+  label 'r5_2xlarge_dynamic_disk'
 
   input:
     tuple path('CASE_ID'),
