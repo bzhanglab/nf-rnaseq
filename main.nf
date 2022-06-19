@@ -351,19 +351,17 @@ process stage_files {
 
  output:
   tuple path('CASE_ID'),
-        path('R1/*.fastq'),
-        path('R2/*.fastq'),
+        path('R1/*.gz'),
+        path('R2/*.gz'),
         emit: res_ch
 
   """
   echo "${case_id}" > CASE_ID
   mkdir R1 R2
   r1_name=\$(basename ${r1_path})
-  gunzip -f \${r1_name}
-  mv *.fastq R1
+  mv \${r1_name} R1
   r2_name=\$(basename ${r2_path})
-  gunzip -f \${r2_name}
-  mv *.fastq R2
+  mv \${r2_name} R2
   """
 }
 
@@ -377,8 +375,8 @@ process fastq_to_sam {
 
   input:
     tuple path('CASE_ID'),
-          path('r1.fastq'),
-          path('r2.fastq')
+          path('r1.fastq.gz'),
+          path('r2.fastq.gz')
     val(genome_ref_prefix)
     path('*')
     path('*')
@@ -390,7 +388,7 @@ process fastq_to_sam {
 
   """
    bwa mem -t ${task.cpus} -T 19 ${genome_ref_prefix} \
-      r1.fastq r2.fastq -o bwa-pe-for-CIRI.sam 
+      r1.fastq.gz r2.fastq.gz -o bwa-pe-for-CIRI.sam 
   """
 
 }
@@ -599,8 +597,8 @@ process gene_and_transcript_quantification {
 
   input:
     tuple val(case_id),
-          path('r1.fastq'),
-          path('r2.fastq'),
+          path('r1.fastq.gz'),
+          path('r2.fastq.gz'),
           path('*')
     
   output: 
@@ -612,7 +610,7 @@ process gene_and_transcript_quantification {
 mkdir ${case_id}
 /opt/RSEM/rsem-calculate-expression --bowtie2 --bowtie2-path \
 /opt/bowtie2/ --paired-end -p ${task.cpus} \
-r1.fastq r2.fastq hg38 ${case_id}/${case_id}
+r1.fastq.gz r2.fastq.gz hg38 ${case_id}/${case_id}
 """
 }
 
