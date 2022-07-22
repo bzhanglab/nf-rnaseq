@@ -371,7 +371,7 @@ process fastq_to_sam {
   container "${params.container.bwa}"
   cpus 8
   memory '60 GB'
-  label 'r5_2xlarge_dynamic_disk'
+  label 'r5_2xlarge_500g'
 
   input:
     tuple path('CASE_ID'),
@@ -400,7 +400,7 @@ process ciri_calling {
              pattern: '*/results_CIRI.txt',
              mode: 'copy', overwrite: true 
   container "${params.container.ciri}"
-  label 'r5_4xlarge_dynamic_disk'
+  label 'r5_4xlarge_500g'
   cpus 16
   memory '124 GB'
 
@@ -591,7 +591,7 @@ process gene_and_transcript_quantification {
              mode: 'copy',
              overwrite: true
   container "${params.container.rsem}"
-  label 'r5_2xlarge_dynamic_disk'
+  label 'r5_2xlarge_500g'
   cpus 8
   memory '60 GB'
 
